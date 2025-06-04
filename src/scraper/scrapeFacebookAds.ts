@@ -8,7 +8,7 @@ export interface ScrapeInput {
 }
 
 export async function scrapeFacebookAds({ company }: ScrapeInput) {
-  const browser = await chromium.launch({ headless: false });
+  const browser = await chromium.launch({ headless: false }); // set to true later
   const context = await browser.newContext();
   const page = await context.newPage();
 
@@ -30,7 +30,6 @@ export async function scrapeFacebookAds({ company }: ScrapeInput) {
     } catch {
       console.log("⚠️ 'Allow all cookies' button not found or not visible.");
     }
-
 
     // Click the Ad Category dropdown
     const adCategoryButton = page.getByText("Ad category", { exact: true });
@@ -90,10 +89,18 @@ export async function scrapeFacebookAds({ company }: ScrapeInput) {
     await page.keyboard.press("Enter");
 
     console.log("✅ Search submitted. Waiting for results...");
-    await page.waitForTimeout(5000);
+    await page.waitForSelector('div[role="article"]', { timeout: 15000 });
+    await page.waitForTimeout(3000); // allow more to load just in case
 
     // Scrape ad results
     const adHandles = await page.$$('div[role="article"]');
+    console.log(`🔍 Found ${adHandles.length} ad(s)`);
+
+    if (adHandles.length > 0) {
+      const html = await adHandles[0].innerHTML();
+      console.log("🔎 First ad innerHTML:\n", html);
+    }
+
     const ads = [];
 
     for (const ad of adHandles) {
