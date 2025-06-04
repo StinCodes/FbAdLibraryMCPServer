@@ -1,4 +1,5 @@
 import { chromium } from "playwright";
+import crypto from "crypto";
 
 export interface ScrapeInput {
   company?: string;
@@ -8,7 +9,7 @@ export interface ScrapeInput {
 }
 
 export async function scrapeFacebookAds({ company }: ScrapeInput) {
-  const browser = await chromium.launch({ headless: false }); // set to true later
+  const browser = await chromium.launch({ headless: false });
   const context = await browser.newContext();
   const page = await context.newPage();
 
@@ -80,7 +81,6 @@ export async function scrapeFacebookAds({ company }: ScrapeInput) {
           console.log(`🟡 Visible input: "${placeholder}"`);
         }
       }
-
       throw new Error("❌ Still couldn't find a usable search input.");
     }
 
@@ -88,29 +88,65 @@ export async function scrapeFacebookAds({ company }: ScrapeInput) {
     await page.keyboard.type(company || "", { delay: 100 });
     await page.keyboard.press("Enter");
 
-    console.log("✅ Search submitted. Waiting for results...");
-    await page.waitForSelector('div[role="article"]', { timeout: 15000 });
-    await page.waitForTimeout(3000); // allow more to load just in case
+    console.log("⏳ Waiting for ads or 'no results' message...");
+    const resultsOrEmpty = await Promise.race([
+      page
+        .waitForSelector("text=Library ID", {
+          timeout: 15000,
+          state: "attached",
+        })
+        .then(() => "ads"),
+      page
+        .waitForSelector("text=No results found", {
+          timeout: 15000,
+          state: "attached",
+        })
+        .then(() => "none"),
+    ]);
 
-    // Scrape ad results
-    const adHandles = await page.$$('div[role="article"]');
-    console.log(`🔍 Found ${adHandles.length} ad(s)`);
-
-    if (adHandles.length > 0) {
-      const html = await adHandles[0].innerHTML();
-      console.log("🔎 First ad innerHTML:\n", html);
+    if (resultsOrEmpty === "none") {
+      console.log("⚠️ No ads found for this query.");
+      return [];
     }
+
+    await page.mouse.wheel(0, 1000);
+    await page.waitForTimeout(2000);
+
+    const adSpans = await page.locator("text=Library ID").elementHandles();
+    console.log(`🔍 Found ${adSpans.length} ad(s)`);
 
     const ads = [];
 
-    for (const ad of adHandles) {
+    for (const span of adSpans) {
+      const ad = await span.evaluateHandle((node) => {
+        let container = node;
+        for (let i = 0; i < 5; i++) {
+          if (container.parentElement) container = container.parentElement;
+        }
+        return container;
+      });
+
       const advertiser = await ad
-        .$eval("strong", (el) => el.textContent?.trim() || "")
+        .evaluate((node) => {
+          const container = node as HTMLElement;
+          const strong = container.querySelector("strong");
+          return strong?.textContent?.trim() || "";
+        })
         .catch(() => "");
 
-      const content = await ad.innerText().catch(() => "");
+      const content = await ad
+        .evaluate((node) => {
+          const container = node as HTMLElement;
+          return container.textContent?.trim() || "";
+        })
+        .catch(() => "");
+
       const creativeUrl = await ad
-        .$eval("img", (img) => (img as HTMLImageElement).src)
+        .evaluate((node) => {
+          const container = node as HTMLElement;
+          const img = container.querySelector("img");
+          return img?.src || null;
+        })
         .catch(() => null);
 
       ads.push({
