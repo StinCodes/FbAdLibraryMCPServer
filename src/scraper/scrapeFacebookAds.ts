@@ -149,15 +149,32 @@ export async function scrapeFacebookAds({ company }: ScrapeInput) {
         })
         .catch(() => null);
 
+      // 🧠 Extract structured fields from content
+      const startMatch = content.match(/Started running on (.+?) ·/);
+      const start_date = startMatch
+        ? new Date(startMatch[1]).toISOString().split("T")[0]
+        : null;
+
+      const spendMatch = content.match(/Amount spent \(USD\):([^\n]+)/);
+      const spend = spendMatch ? spendMatch[1].trim() : null;
+
+      const impressionsMatch = content.match(/Impressions:([^\n]+)/);
+      const impressions = impressionsMatch ? impressionsMatch[1].trim() : null;
+
+      const platforms: string[] = [];
+      if (/facebook/i.test(content)) platforms.push("Facebook");
+      if (/instagram/i.test(content)) platforms.push("Instagram");
+      if (platforms.length === 0) platforms.push("Facebook"); // fallback
+
       ads.push({
         id: crypto.randomUUID(),
         advertiser,
         content,
-        start_date: null,
+        start_date,
         end_date: null,
-        impressions: null,
-        spend: null,
-        platforms: ["Facebook"],
+        impressions,
+        spend,
+        platforms,
         creative_url: creativeUrl,
         demographics: {},
         scraped_at: new Date().toISOString(),
