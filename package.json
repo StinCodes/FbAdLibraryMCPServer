@@ -16,7 +16,7 @@
     "typescript": "^5.8.3"
   },
   "dependencies": {
-    "date-fns": "^4.1.0",
-    "mcp-sdk": "^0.1.0"
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "date-fns": "^4.1.0"
   }
 }
