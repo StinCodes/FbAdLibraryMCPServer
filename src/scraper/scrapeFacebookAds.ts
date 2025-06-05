@@ -18,7 +18,7 @@ export async function scrapeFacebookAds({ company }: ScrapeInput) {
       waitUntil: "domcontentloaded",
     });
 
-    await page.waitForTimeout(5000); // let page fully render
+    await page.waitForTimeout(5000);
 
     // Accept cookies
     try {
@@ -32,19 +32,17 @@ export async function scrapeFacebookAds({ company }: ScrapeInput) {
       console.log("⚠️ 'Allow all cookies' button not found or not visible.");
     }
 
-    // Click the Ad Category dropdown
+    // Click Ad category
     const adCategoryButton = page.getByText("Ad category", { exact: true });
     await adCategoryButton.waitFor({ timeout: 10000 });
     console.log("🔽 Clicking 'Ad category' dropdown...");
     await adCategoryButton.click();
     await page.waitForTimeout(1000);
 
-    // Select "All ads" option
+    // Select "All ads"
     console.log("✅ Looking for 'All ads' option...");
     const allAdsOption = page.getByText("All ads", { exact: true });
-
-    const isAllAdsVisible = await allAdsOption.isVisible();
-    if (!isAllAdsVisible) {
+    if (!(await allAdsOption.isVisible())) {
       throw new Error("❌ Could not find a visible 'All ads' option to click.");
     }
 
@@ -52,7 +50,7 @@ export async function scrapeFacebookAds({ company }: ScrapeInput) {
     console.log("✅ 'All ads' selected.");
     await page.waitForTimeout(2000);
 
-    // Wait for search input field
+    // Find search input
     console.log("🔍 Waiting for search input to appear...");
     const inputs = await page.$$("input");
     let searchInput = null;
@@ -73,15 +71,7 @@ export async function scrapeFacebookAds({ company }: ScrapeInput) {
     }
 
     if (!searchInput) {
-      console.log("⚠️ Logging all visible inputs for debugging:");
-      for (const input of inputs) {
-        const placeholder = await input.getAttribute("placeholder");
-        const isVisible = (await input.boundingBox()) !== null;
-        if (isVisible) {
-          console.log(`🟡 Visible input: "${placeholder}"`);
-        }
-      }
-      throw new Error("❌ Still couldn't find a usable search input.");
+      throw new Error("❌ Could not find a usable search input.");
     }
 
     await searchInput.click();
@@ -126,57 +116,47 @@ export async function scrapeFacebookAds({ company }: ScrapeInput) {
         return container;
       });
 
-      const advertiser = await ad
-        .evaluate((node) => {
-          const container = node as HTMLElement;
-          const strong = container.querySelector("strong");
-          return strong?.textContent?.trim() || "";
-        })
-        .catch(() => "");
+      const rawText = await ad.evaluate((el) => el.textContent || "");
 
-      const content = await ad
-        .evaluate((node) => {
-          const container = node as HTMLElement;
-          return container.textContent?.trim() || "";
-        })
-        .catch(() => "");
+      const advertiser = await ad.evaluate((node) => {
+        const el = node as HTMLElement;
+        const nameEl = el.querySelector("strong") || el.querySelector('[role="heading"]');
+        return nameEl?.textContent?.trim() || "";
+      });
 
-      const creativeUrl = await ad
-        .evaluate((node) => {
-          const container = node as HTMLElement;
-          const img = container.querySelector("img");
-          return img?.src || null;
-        })
-        .catch(() => null);
+      const startDateMatch = rawText.match(/Started running on (.+?) ·/);
+      const endDateMatch = rawText.match(/Ended on (.+?)(?: ·|$)/);
+      const impressionsMatch = rawText.match(/Impressions:\s*([<\d,]+(?:K|M)?)/);
+      const spendMatch = rawText.match(/Amount spent.*?:\s*(.+?)(?:Impressions|$)/);
 
-      // 🧠 Extract structured fields from content
-      const startMatch = content.match(/Started running on (.+?) ·/);
-      const start_date = startMatch
-        ? new Date(startMatch[1]).toISOString().split("T")[0]
-        : null;
+      const creativeUrl = await ad.evaluate((node) => {
+        const el = node as HTMLElement;
+        const img = el.querySelector("img");
+        if (img?.src) return img.src;
 
-      const spendMatch = content.match(/Amount spent \(USD\):([^\n]+)/);
-      const spend = spendMatch ? spendMatch[1].trim() : null;
+        const bg = el.querySelector('[style*="background-image"]');
+        const style = bg?.getAttribute("style") || "";
+        const match = style.match(/url\("?([^")]+)"?\)/);
+        return match?.[1] || null;
+      });
 
-      const impressionsMatch = content.match(/Impressions:([^\n]+)/);
-      const impressions = impressionsMatch ? impressionsMatch[1].trim() : null;
-
-      const platforms: string[] = [];
-      if (/facebook/i.test(content)) platforms.push("Facebook");
-      if (/instagram/i.test(content)) platforms.push("Instagram");
-      if (platforms.length === 0) platforms.push("Facebook"); // fallback
+      const targeting = await ad.evaluate((node) => {
+        const el = node as HTMLElement;
+        const lines = Array.from(el.querySelectorAll("span, div")).map((e) => e.textContent || "");
+        return lines.find((line) => line.includes("People who may see this ad")) || "";
+      });
 
       ads.push({
         id: crypto.randomUUID(),
         advertiser,
-        content,
-        start_date,
-        end_date: null,
-        impressions,
-        spend,
-        platforms,
+        content: rawText.trim(),
+        start_date: startDateMatch?.[1]?.trim() || null,
+        end_date: endDateMatch?.[1]?.trim() || null,
+        impressions: impressionsMatch?.[1]?.trim() || null,
+        spend: spendMatch?.[1]?.trim() || null,
+        platforms: ["Facebook"],
         creative_url: creativeUrl,
-        demographics: {},
+        demographics: targeting ? { targeting } : {},
         scraped_at: new Date().toISOString(),
       });
     }
