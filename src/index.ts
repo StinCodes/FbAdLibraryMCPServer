@@ -1,12 +1,8 @@
-import { scrapeFacebookAds } from './scraper/scrapeFacebookAds';
+import { createServer } from "mcp-sdk";
+import { tools } from "./mcp/tools";
+import { searchAdsHandler } from "./mcp/searchAdsHandler";
 
-(async () => {
-  const ads = await scrapeFacebookAds({
-    company: 'Nike',
-    keywords: ['shoes'],
-    start_date: '2024-01-01',
-    end_date: '2024-01-31',
-  });
-
-  console.log('Scraped Ads:', ads);
-})();
+createServer({
+  tools,
+  handlers: { search_ads: searchAdsHandler },
+}).listen(3000, () => console.log("🟢 MCP server ready on :3000"));
