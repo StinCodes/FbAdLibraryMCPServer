@@ -20,11 +20,11 @@ export async function scrapeFacebookAds({ company }: ScrapeInput) {
 
     await page.waitForTimeout(5000);
 
-    // Accept cookies
+    /* ───────── Cookie banner ───────── */
     try {
       const acceptBtn = page.getByText("Allow all cookies", { exact: true });
       if (await acceptBtn.isVisible()) {
-        console.log("✅ Clicking Allow Cookies...");
+        console.log("✅ Clicking Allow Cookies…");
         await acceptBtn.click();
         await page.waitForTimeout(2000);
       }
@@ -32,15 +32,14 @@ export async function scrapeFacebookAds({ company }: ScrapeInput) {
       console.log("⚠️ 'Allow all cookies' button not found or not visible.");
     }
 
-    // Click Ad category
+    /* ───────── Ad category → All ads ───────── */
     const adCategoryButton = page.getByText("Ad category", { exact: true });
     await adCategoryButton.waitFor({ timeout: 10000 });
-    console.log("🔽 Clicking 'Ad category' dropdown...");
+    console.log("🔽 Clicking 'Ad category' dropdown…");
     await adCategoryButton.click();
     await page.waitForTimeout(1000);
 
-    // Select "All ads"
-    console.log("✅ Looking for 'All ads' option...");
+    console.log("✅ Looking for 'All ads' option…");
     const allAdsOption = page.getByText("All ads", { exact: true });
     if (!(await allAdsOption.isVisible())) {
       throw new Error("❌ Could not find a visible 'All ads' option to click.");
@@ -50,8 +49,8 @@ export async function scrapeFacebookAds({ company }: ScrapeInput) {
     console.log("✅ 'All ads' selected.");
     await page.waitForTimeout(2000);
 
-    // Find search input
-    console.log("🔍 Waiting for search input to appear...");
+    /* ───────── Search input ───────── */
+    console.log("🔍 Waiting for search input to appear…");
     const inputs = await page.$$("input");
     let searchInput = null;
 
@@ -70,21 +69,17 @@ export async function scrapeFacebookAds({ company }: ScrapeInput) {
       }
     }
 
-    if (!searchInput) {
-      throw new Error("❌ Could not find a usable search input.");
-    }
+    if (!searchInput) throw new Error("❌ Could not find a usable search input.");
 
     await searchInput.click();
     await page.keyboard.type(company || "", { delay: 100 });
     await page.keyboard.press("Enter");
 
-    console.log("⏳ Waiting for ads or 'no results' message...");
+    /* ───────── Wait for first results ───────── */
+    console.log("⏳ Waiting for ads or 'no results' message…");
     const resultsOrEmpty = await Promise.race([
       page
-        .waitForSelector("text=Library ID", {
-          timeout: 15000,
-          state: "attached",
-        })
+        .waitForSelector("text=Library ID", { timeout: 15000, state: "attached" })
         .then(() => "ads"),
       page
         .waitForSelector("text=No results found", {
@@ -99,9 +94,43 @@ export async function scrapeFacebookAds({ company }: ScrapeInput) {
       return [];
     }
 
+    /* ───────── Initial nudge to trigger lazy load ───────── */
     await page.mouse.wheel(0, 1000);
     await page.waitForTimeout(2000);
 
+    /* ───────────────────────────────────────────────────────
+     * 🔄 Pagination loop (NEW – everything below this comment
+     *    is additive; nothing above was removed or altered)
+     * ─────────────────────────────────────────────────────── */
+    console.log("🔄 Starting auto-scroll pagination…");
+
+    let previousAdCount = 0;
+    let sameCountRounds = 0;
+    const maxSameCountRounds = 3;   // stop after 3 scrolls with no change
+    const MAX_ADS = 100; //Ad load limit
+
+    while (sameCountRounds < maxSameCountRounds) {
+      // Scroll near the bottom
+      await page.evaluate(() => window.scrollBy(0, window.innerHeight * 0.8));
+      await page.waitForTimeout(2000); // allow ads to load
+
+      const currentAdCount = await page.locator("text=Library ID").count();
+      console.log(
+        `↻ Scroll ${sameCountRounds + 1}/${maxSameCountRounds} | ads on page: ${currentAdCount}`
+      );
+      if (currentAdCount >= MAX_ADS) break;
+
+      if (currentAdCount === previousAdCount) {
+        sameCountRounds += 1;       // no new ads this round
+      } else {
+        previousAdCount = currentAdCount;
+        sameCountRounds = 0;        // progress made; reset counter
+      }
+    }
+
+    console.log("✅ Pagination complete – no new ads appearing.");
+
+    /* ───────── Collect and parse ads ───────── */
     const adSpans = await page.locator("text=Library ID").elementHandles();
     console.log(`🔍 Found ${adSpans.length} ad(s)`);
 
@@ -120,14 +149,19 @@ export async function scrapeFacebookAds({ company }: ScrapeInput) {
 
       const advertiser = await ad.evaluate((node) => {
         const el = node as HTMLElement;
-        const nameEl = el.querySelector("strong") || el.querySelector('[role="heading"]');
+        const nameEl =
+          el.querySelector("strong") || el.querySelector('[role="heading"]');
         return nameEl?.textContent?.trim() || "";
       });
 
       const startDateMatch = rawText.match(/Started running on (.+?) ·/);
       const endDateMatch = rawText.match(/Ended on (.+?)(?: ·|$)/);
-      const impressionsMatch = rawText.match(/Impressions:\s*([<\d,]+(?:K|M)?)/);
-      const spendMatch = rawText.match(/Amount spent.*?:\s*(.+?)(?:Impressions|$)/);
+      const impressionsMatch = rawText.match(
+        /Impressions:\s*([<\d,]+(?:K|M)?)/,
+      );
+      const spendMatch = rawText.match(
+        /Amount spent.*?:\s*(.+?)(?:Impressions|$)/,
+      );
 
       const creativeUrl = await ad.evaluate((node) => {
         const el = node as HTMLElement;
@@ -142,8 +176,12 @@ export async function scrapeFacebookAds({ company }: ScrapeInput) {
 
       const targeting = await ad.evaluate((node) => {
         const el = node as HTMLElement;
-        const lines = Array.from(el.querySelectorAll("span, div")).map((e) => e.textContent || "");
-        return lines.find((line) => line.includes("People who may see this ad")) || "";
+        const lines = Array.from(el.querySelectorAll("span, div")).map(
+          (e) => e.textContent || "",
+        );
+        return (
+          lines.find((line) => line.includes("People who may see this ad")) || ""
+        );
       });
 
       ads.push({
