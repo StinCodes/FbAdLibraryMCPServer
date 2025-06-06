@@ -142,26 +142,27 @@ Connect to the server using any MCP-compatible client:
 - `express`: HTTP server framework
 - `zod`: Runtime type validation
 
-## Deployment (Railway)
+## Deployment (Fly.io)
 
-1. **Push to GitHub:**
+1. **Install flyctl:**
 ```bash
-git add .
-git commit -m "Prepare for Railway deployment"
-git push origin main
+curl -L https://fly.io/install.sh | sh
+export FLYCTL_INSTALL="/root/.fly"
+export PATH="$FLYCTL_INSTALL/bin:$PATH"
 ```
 
-2. **Deploy to Railway:**
-   - Go to [railway.app](https://railway.app) and sign up
-   - Click "New Project" → "Deploy from GitHub repo"
-   - Select your repository
-   - Railway will automatically detect Node.js and deploy
-   - Set environment variable: `NODE_ENV=production`
+2. **Deploy to Fly.io:**
+```bash
+flyctl auth signup
+flyctl launch --no-deploy
+flyctl secrets set NODE_ENV=production
+flyctl deploy
+```
 
-3. **Get your public URL:**
-   - Railway will provide a URL like `https://your-app.railway.app`
-   - Health check: `https://your-app.railway.app/healthz`
-   - MCP endpoint: `https://your-app.railway.app/mcp`
+3. **Your deployed app:**
+   - App URL: `https://your-app.fly.dev`
+   - Health check: `https://your-app.fly.dev/healthz`
+   - MCP endpoint: `https://your-app.fly.dev/mcp` (POST only)
 
 ## License
 
