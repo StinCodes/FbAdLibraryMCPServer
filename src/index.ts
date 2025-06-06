@@ -1,6 +1,5 @@
 import express, { Request, Response } from "express";
 import { randomUUID } from "crypto";
-import { z } from "zod";
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import {
@@ -8,15 +7,6 @@ import {
 } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 
 import { searchAdsHandler } from "./mcp/searchAdsHandler";
-
-const searchAdsParams = {
-  company: z.string().optional(),
-  start_date: z.string().optional(),
-  end_date: z.string().optional(),
-  keywords: z.array(z.string()).optional(),
-  limit: z.number().int().optional().default(50),
-  order: z.enum(["date_desc", "date_asc", "relevance"]).optional(),
-} as const;
 
 function buildServer(): McpServer {
   const server = new McpServer({
@@ -26,10 +16,43 @@ function buildServer(): McpServer {
 
   server.tool(
     "search_ads",
-    searchAdsParams,
+    "Search for Facebook ads with optional filters",
+    {
+      company: {
+        type: "string",
+        description: "Company/advertiser name to filter by (optional)"
+      },
+      start_date: {
+        type: "string", 
+        description: "Start date for ad search (YYYY-MM-DD format, optional)"
+      },
+      end_date: {
+        type: "string",
+        description: "End date for ad search (YYYY-MM-DD format, optional)" 
+      },
+      keywords: {
+        type: "array",
+        items: { type: "string" },
+        description: "Keywords to search in ad content (optional)"
+      },
+      limit: {
+        type: "number",
+        description: "Maximum number of ads to return (optional, default: 50)"
+      },
+      order: {
+        type: "string",
+        enum: ["date_desc", "date_asc", "relevance"],
+        description: "Sort order for results (optional, default: date_desc)"
+      }
+    },
     async (args) => {
       const { ads } = await searchAdsHandler(args as any, {});
-      return { content: [{ type: "json", json: { ads } }] };
+      return { 
+        content: [{ 
+          type: "text", 
+          text: JSON.stringify({ ads }, null, 2)
+        }] 
+      };
     }
   );
 
@@ -55,10 +78,9 @@ app.post("/mcp", async (req: Request, res: Response) => {
   await transport.handleRequest(req, res, req.body);
 });
 
-app.get(
-  "/healthz",
-  (_req: Request, res: Response) => res.json({ status: "ok" })
-);
+app.get("/healthz", (_req: Request, res: Response) => {
+  res.json({ status: "ok" });
+});
 
 const PORT = Number(process.env.PORT) || 3000;
 app.listen(PORT, () =>
