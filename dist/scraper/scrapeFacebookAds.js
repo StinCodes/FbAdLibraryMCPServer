@@ -7,7 +7,18 @@ exports.scrapeFacebookAds = scrapeFacebookAds;
 const playwright_1 = require("playwright");
 const crypto_1 = __importDefault(require("crypto"));
 async function scrapeFacebookAds({ company }) {
-    const browser = await playwright_1.chromium.launch({ headless: false });
+    const browser = await playwright_1.chromium.launch({
+        headless: process.env.NODE_ENV === 'production' ? true : false,
+        args: process.env.NODE_ENV === 'production' ? [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-accelerated-2d-canvas',
+            '--no-first-run',
+            '--no-zygote',
+            '--disable-gpu'
+        ] : []
+    });
     const context = await browser.newContext();
     const page = await context.newPage();
     try {

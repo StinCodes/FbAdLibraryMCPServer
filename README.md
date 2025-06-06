@@ -142,6 +142,27 @@ Connect to the server using any MCP-compatible client:
 - `express`: HTTP server framework
 - `zod`: Runtime type validation
 
+## Deployment (Railway)
+
+1. **Push to GitHub:**
+```bash
+git add .
+git commit -m "Prepare for Railway deployment"
+git push origin main
+```
+
+2. **Deploy to Railway:**
+   - Go to [railway.app](https://railway.app) and sign up
+   - Click "New Project" → "Deploy from GitHub repo"
+   - Select your repository
+   - Railway will automatically detect Node.js and deploy
+   - Set environment variable: `NODE_ENV=production`
+
+3. **Get your public URL:**
+   - Railway will provide a URL like `https://your-app.railway.app`
+   - Health check: `https://your-app.railway.app/healthz`
+   - MCP endpoint: `https://your-app.railway.app/mcp`
+
 ## License
 
 ISC

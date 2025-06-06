@@ -9,7 +9,18 @@ export interface ScrapeInput {
 }
 
 export async function scrapeFacebookAds({ company }: ScrapeInput) {
-  const browser = await chromium.launch({ headless: false });
+  const browser = await chromium.launch({ 
+    headless: process.env.NODE_ENV === 'production' ? true : false,
+    args: process.env.NODE_ENV === 'production' ? [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-accelerated-2d-canvas',
+      '--no-first-run',
+      '--no-zygote',
+      '--disable-gpu'
+    ] : []
+  });
   const context = await browser.newContext();
   const page = await context.newPage();
 
