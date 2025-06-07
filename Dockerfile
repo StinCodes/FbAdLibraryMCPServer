@@ -26,7 +26,9 @@ RUN apt-get update -qq && \
     libatspi2.0-0 libx11-6 libxcomposite1 libxdamage1 libxext6 \
     libxfixes3 libxrandr2 libgbm1 libxss1 libasound2 \
     # Additional deps for Playwright
-    libpango-1.0-0 libcairo2
+    libpango-1.0-0 libcairo2 \
+    # Virtual display for non-headless browsers
+    xvfb
 
 # Install node modules
 COPY package-lock.json package.json ./
@@ -56,7 +58,9 @@ RUN apt-get update -qq && \
     libatspi2.0-0 libx11-6 libxcomposite1 libxdamage1 libxext6 \
     libxfixes3 libxrandr2 libgbm1 libxss1 libasound2 \
     # Additional deps for Playwright
-    libpango-1.0-0 libcairo2 && \
+    libpango-1.0-0 libcairo2 \
+    # Virtual display for non-headless browsers
+    xvfb && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy built application
