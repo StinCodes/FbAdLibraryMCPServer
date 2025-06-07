@@ -51,7 +51,7 @@ Search for Facebook ads with optional filters.
 
 **Parameters:**
 - `company` (string, optional): Company/advertiser name to filter by
-- `start_date` (string, optional): Start date in YYYY-MM-DD format  
+- `start_date` (string, optional): Start date in YYYY-MM-DD format
 - `end_date` (string, optional): End date in YYYY-MM-DD format
 - `keywords` (array of strings, optional): Keywords to search in ad content
 - `limit` (integer, optional): Maximum ads to return (default: 50, max: 100)
@@ -63,7 +63,7 @@ Search for Facebook ads with optional filters.
   "tool": "search_ads",
   "arguments": {
     "company": "Nike",
-    "start_date": "2024-01-01", 
+    "start_date": "2024-01-01",
     "end_date": "2024-01-31",
     "keywords": ["running", "shoes"],
     "limit": 10,
@@ -81,7 +81,7 @@ Search for Facebook ads with optional filters.
       "advertiser": "Company Name",
       "content": "Ad text content",
       "start_date": "Jan 15, 2024",
-      "end_date": "Feb 15, 2024", 
+      "end_date": "Feb 15, 2024",
       "impressions": "1,000-5,000",
       "spend": "$100-$500",
       "platforms": ["Facebook"],
@@ -137,7 +137,7 @@ Connect to the server using any MCP-compatible client:
 ## Dependencies
 
 - `@modelcontextprotocol/sdk`: MCP protocol implementation
-- `playwright`: Web scraping automation  
+- `playwright`: Web scraping automation
 - `date-fns`: Date parsing and manipulation
 - `express`: HTTP server framework
 - `zod`: Runtime type validation
@@ -183,42 +183,6 @@ flyctl deploy
 ```
 
 **Authentication:** None required
-
-## Working Example Tool Call
-
-The exact example from the project requirements:
-
-```bash
-curl -X POST "https://fbadlibrarymcpserver.fly.dev/test-search" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "company": "Nike",
-    "start_date": "2024-01-01", 
-    "end_date": "2024-01-31",
-    "keywords": ["running", "shoes"],
-    "limit": 10,
-    "order": "date_desc"
-  }'
-```
-
-**Expected Response:**
-```json
-{
-  "success": true,
-  "query": {
-    "company": "Nike",
-    "limit": 10,
-    "start_date": "2024-01-01",
-    "end_date": "2024-01-31", 
-    "keywords": ["running", "shoes"],
-    "order": "date_desc"
-  },
-  "results": 0,
-  "ads": []
-}
-```
-
-*Note: The `results: 0` indicates Facebook's anti-bot measures are preventing data extraction, but the infrastructure and tool parameters are working correctly.*
 
 ## License
 
