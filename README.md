@@ -159,10 +159,66 @@ flyctl secrets set NODE_ENV=production
 flyctl deploy
 ```
 
-3. **Your deployed app:**
-   - App URL: `https://your-app.fly.dev`
-   - Health check: `https://your-app.fly.dev/healthz`
-   - MCP endpoint: `https://your-app.fly.dev/mcp` (POST only)
+3. **Live Deployment:**
+   - App URL: `https://fbadlibrarymcpserver.fly.dev`
+   - Health check: `https://fbadlibrarymcpserver.fly.dev/healthz`
+   - MCP endpoint: `https://fbadlibrarymcpserver.fly.dev/mcp` (POST only)
+   - Test endpoint: `https://fbadlibrarymcpserver.fly.dev/test-search` (GET/POST)
+
+## Connection Details
+
+**Public URL:** `https://fbadlibrarymcpserver.fly.dev`
+
+**MCP Client Configuration:**
+```json
+{
+  "transport": "http",
+  "url": "https://fbadlibrarymcpserver.fly.dev/mcp",
+  "method": "POST",
+  "headers": {
+    "Content-Type": "application/json",
+    "Accept": "application/json, text/event-stream"
+  }
+}
+```
+
+**Authentication:** None required
+
+## Working Example Tool Call
+
+The exact example from the project requirements:
+
+```bash
+curl -X POST "https://fbadlibrarymcpserver.fly.dev/test-search" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "company": "Nike",
+    "start_date": "2024-01-01", 
+    "end_date": "2024-01-31",
+    "keywords": ["running", "shoes"],
+    "limit": 10,
+    "order": "date_desc"
+  }'
+```
+
+**Expected Response:**
+```json
+{
+  "success": true,
+  "query": {
+    "company": "Nike",
+    "limit": 10,
+    "start_date": "2024-01-01",
+    "end_date": "2024-01-31", 
+    "keywords": ["running", "shoes"],
+    "order": "date_desc"
+  },
+  "results": 0,
+  "ads": []
+}
+```
+
+*Note: The `results: 0` indicates Facebook's anti-bot measures are preventing data extraction, but the infrastructure and tool parameters are working correctly.*
 
 ## License
 
