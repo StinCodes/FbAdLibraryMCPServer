@@ -34,11 +34,15 @@ export async function scrapeFacebookAds({ company }: ScrapeInput) {
   const page = await context.newPage();
 
   try {
+    // Add random mouse movement to appear more human-like
+    await page.mouse.move(Math.random() * 100, Math.random() * 100);
+    
     await page.goto("https://www.facebook.com/ads/library/", {
       waitUntil: "domcontentloaded",
     });
 
-    await page.waitForTimeout(5000);
+    // Random delay between 3-7 seconds instead of fixed 5
+    await page.waitForTimeout(3000 + Math.random() * 4000);
 
     /* ───────── Cookie banner ───────── */
     try {
@@ -92,7 +96,12 @@ export async function scrapeFacebookAds({ company }: ScrapeInput) {
     if (!searchInput) throw new Error("❌ Could not find a usable search input.");
 
     await searchInput.click();
-    await page.keyboard.type(company || "", { delay: 100 });
+    // Human-like typing with random delays
+    const searchTerm = company || "";
+    for (const char of searchTerm) {
+      await page.keyboard.type(char, { delay: 80 + Math.random() * 120 });
+    }
+    await page.waitForTimeout(500 + Math.random() * 1000);
     await page.keyboard.press("Enter");
 
     /* ───────── Wait for first results ───────── */
