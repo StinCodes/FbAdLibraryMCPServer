@@ -53,16 +53,16 @@ function buildServer() {
 }
 const app = (0, express_1.default)();
 app.use(express_1.default.json());
+// Create a single server instance
+const mcpServer = buildServer();
 app.post("/mcp", async (req, res) => {
-    const server = buildServer();
     const transport = new streamableHttp_js_1.StreamableHTTPServerTransport({
-        sessionIdGenerator: () => (0, crypto_1.randomUUID)(), // SDK ≥ 1.3
+        sessionIdGenerator: () => (0, crypto_1.randomUUID)(),
     });
     res.on("close", () => {
         transport.close();
-        server.close();
     });
-    await server.connect(transport);
+    await mcpServer.connect(transport);
     await transport.handleRequest(req, res, req.body);
 });
 app.get("/healthz", (_req, res) => {
