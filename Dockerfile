@@ -33,6 +33,9 @@ RUN npm ci --include=dev
 # Copy application code
 COPY . .
 
+# Install Playwright browsers explicitly
+RUN npx playwright install chromium
+
 # Build application
 RUN npm run build
 
@@ -54,6 +57,9 @@ RUN apt-get update -qq && \
 
 # Copy built application
 COPY --from=build /app /app
+
+# Copy Playwright browser cache
+COPY --from=build /root/.cache/ms-playwright /root/.cache/ms-playwright
 
 # Start the server by default, this can be overwritten at runtime
 EXPOSE 3000
