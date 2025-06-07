@@ -82,11 +82,42 @@ app.get("/healthz", (_req: Request, res: Response) => {
   res.json({ status: "ok" });
 });
 
+// Simple GET endpoint for quick testing
+app.get("/test-search", async (req: Request, res: Response) => {
+  try {
+    const company = req.query.company as string || "McDonald";
+    const limit = parseInt(req.query.limit as string) || 3;
+    
+    console.log(`🔍 GET Testing search for: ${company} (limit: ${limit})`);
+    
+    const { ads } = await searchAdsHandler({ company, limit }, {});
+    
+    res.json({ 
+      success: true, 
+      query: { company, limit },
+      results: ads.length,
+      ads 
+    });
+  } catch (error) {
+    console.error("❌ GET Search failed:", error);
+    res.status(500).json({ 
+      success: false, 
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
+});
+
 // Simple test endpoint for demonstration
 app.post("/test-search", async (req: Request, res: Response) => {
   try {
-    const { company = "McDonald", limit = 3, ...otherArgs } = req.body;
-    console.log(`🔍 Testing search for: ${company}`);
+    console.log("📥 Request body:", req.body);
+    console.log("📥 Request headers:", req.headers);
+    
+    // Handle both empty body and populated body
+    const body = req.body || {};
+    const { company = "McDonald", limit = 3, ...otherArgs } = body;
+    
+    console.log(`🔍 Testing search for: ${company} (limit: ${limit})`);
     
     const { ads } = await searchAdsHandler({ company, limit, ...otherArgs }, {});
     
@@ -101,7 +132,8 @@ app.post("/test-search", async (req: Request, res: Response) => {
     res.status(500).json({ 
       success: false, 
       error: error instanceof Error ? error.message : String(error),
-      query: req.body 
+      receivedBody: req.body,
+      bodyType: typeof req.body
     });
   }
 });
