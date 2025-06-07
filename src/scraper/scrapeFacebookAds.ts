@@ -9,8 +9,16 @@ export interface ScrapeInput {
 }
 
 export async function scrapeFacebookAds({ company }: ScrapeInput) {
+  // Start virtual display in production (makes cloud behave like local)
+  if (process.env.NODE_ENV === 'production') {
+    const { exec } = require('child_process');
+    exec('Xvfb :99 -screen 0 1920x1080x24 &');
+    process.env.DISPLAY = ':99';
+    console.log('🖥️ Started virtual display for non-headless browser');
+  }
+
   const browser = await chromium.launch({ 
-    headless: process.env.NODE_ENV === 'production' ? true : false,
+    headless: false, // Force non-headless in ALL environments!
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox'
