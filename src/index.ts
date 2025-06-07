@@ -62,19 +62,19 @@ function buildServer(): McpServer {
 const app = express();
 app.use(express.json());
 
-app.post("/mcp", async (req: Request, res: Response) => {
-  const server = buildServer();
+// Create a single server instance
+const mcpServer = buildServer();
 
+app.post("/mcp", async (req: Request, res: Response) => {
   const transport = new StreamableHTTPServerTransport({
-    sessionIdGenerator: () => randomUUID(), // SDK ≥ 1.3
+    sessionIdGenerator: () => randomUUID(),
   });
 
   res.on("close", () => {
     transport.close();
-    server.close();
   });
 
-  await server.connect(transport);
+  await mcpServer.connect(transport);
   await transport.handleRequest(req, res, req.body);
 });
 
