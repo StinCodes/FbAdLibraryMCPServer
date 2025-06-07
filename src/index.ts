@@ -100,7 +100,7 @@ app.post("/test-search", async (req: Request, res: Response) => {
     console.error("❌ Search failed:", error);
     res.status(500).json({ 
       success: false, 
-      error: error.message,
+      error: error instanceof Error ? error.message : String(error),
       query: req.body 
     });
   }
