@@ -82,6 +82,30 @@ app.get("/healthz", (_req: Request, res: Response) => {
   res.json({ status: "ok" });
 });
 
+// Simple test endpoint for demonstration
+app.post("/test-search", async (req: Request, res: Response) => {
+  try {
+    const { company = "McDonald", limit = 3, ...otherArgs } = req.body;
+    console.log(`🔍 Testing search for: ${company}`);
+    
+    const { ads } = await searchAdsHandler({ company, limit, ...otherArgs }, {});
+    
+    res.json({ 
+      success: true, 
+      query: { company, limit, ...otherArgs },
+      results: ads.length,
+      ads 
+    });
+  } catch (error) {
+    console.error("❌ Search failed:", error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message,
+      query: req.body 
+    });
+  }
+});
+
 const PORT = Number(process.env.PORT) || 3000;
 app.listen(PORT, () =>
   console.log(`🟢 MCP HTTP server listening on :${PORT}`)
