@@ -51,6 +51,34 @@ export async function scrapeFacebookAds({ company }: ScrapeInput) {
 
     // Random delay between 3-7 seconds instead of fixed 5
     await page.waitForTimeout(3000 + Math.random() * 4000);
+    
+    // Debug: Check what Facebook is actually showing us
+    const currentUrl = page.url();
+    const pageTitle = await page.title();
+    console.log(`🔍 Current URL: ${currentUrl}`);
+    console.log(`🔍 Page title: ${pageTitle}`);
+    
+    // Check for common blocking scenarios
+    const pageContent = await page.content();
+    if (pageContent.includes('captcha') || pageContent.includes('CAPTCHA')) {
+      console.log('🚫 CAPTCHA detected!');
+    }
+    if (pageContent.includes('blocked') || pageContent.includes('security')) {
+      console.log('🚫 Security block detected!');
+    }
+    if (currentUrl.includes('checkpoint') || currentUrl.includes('login')) {
+      console.log('🚫 Redirected to login/checkpoint!');
+    }
+    
+    // Take screenshot for debugging (only in production to see what Facebook shows)
+    if (process.env.NODE_ENV === 'production') {
+      try {
+        await page.screenshot({ path: '/tmp/facebook-debug.png', fullPage: true });
+        console.log('📸 Debug screenshot saved to /tmp/facebook-debug.png');
+      } catch (e) {
+        console.log('📸 Screenshot failed:', e);
+      }
+    }
 
     /* ───────── Cookie banner ───────── */
     try {
