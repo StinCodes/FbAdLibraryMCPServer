@@ -12,17 +12,32 @@ export async function scrapeFacebookAds({ company }: ScrapeInput) {
   // Start virtual display in production (makes cloud behave like local)
   if (process.env.NODE_ENV === 'production') {
     const { exec } = require('child_process');
-    exec('Xvfb :99 -screen 0 1920x1080x24 &');
-    process.env.DISPLAY = ':99';
-    console.log('🖥️ Started virtual display for non-headless browser');
+    const { promisify } = require('util');
+    const execAsync = promisify(exec);
+    
+    try {
+      console.log('🖥️ Starting virtual display...');
+      await execAsync('Xvfb :99 -screen 0 1920x1080x24 -ac +extension GLX +render -noreset &');
+      process.env.DISPLAY = ':99';
+      // Give Xvfb time to start
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      console.log('✅ Virtual display started successfully');
+    } catch (error) {
+      console.log('⚠️ Virtual display setup failed, falling back to headless:', error);
+    }
   }
 
-  // Simplified browser setup - no complex stealth scripts
+  // Browser setup with timeout and better error handling
   const browser = await chromium.launch({ 
-    headless: false,
+    headless: process.env.NODE_ENV === 'production' ? false : true, // Fallback to headless if display fails
+    timeout: 30000, // 30 second timeout instead of default 3 minutes
     args: [
       '--no-sandbox',
-      '--disable-setuid-sandbox'
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-gpu',
+      '--disable-web-security',
+      '--disable-features=VizDisplayCompositor'
     ]
   });
   
