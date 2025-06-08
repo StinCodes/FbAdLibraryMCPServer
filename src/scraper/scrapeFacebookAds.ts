@@ -34,42 +34,30 @@ export async function scrapeFacebookAds({ company }: ScrapeInput) {
   const page = await context.newPage();
 
   try {
-    // Add random mouse movement to appear more human-like
-    await page.mouse.move(Math.random() * 100, Math.random() * 100);
+    // Visit homepage first - natural navigation pattern
+    console.log("🏠 Visiting Facebook homepage first...");
+    await page.goto("https://www.facebook.com/", {
+      waitUntil: "domcontentloaded",
+    });
+    await page.waitForTimeout(2000);
     
+    // Now navigate to Ad Library naturally
+    console.log("📚 Navigating to Ad Library...");
     await page.goto("https://www.facebook.com/ads/library/", {
       waitUntil: "domcontentloaded",
     });
-
-    // Random delay between 3-7 seconds instead of fixed 5
-    await page.waitForTimeout(3000 + Math.random() * 4000);
+    await page.waitForTimeout(3000);
     
-    // Debug: Check what Facebook is actually showing us
+    // Simplified detection - only check for actual security redirects
     const currentUrl = page.url();
     const pageTitle = await page.title();
     console.log(`🔍 Current URL: ${currentUrl}`);
     console.log(`🔍 Page title: ${pageTitle}`);
     
-    // Check for common blocking scenarios
-    const pageContent = await page.content();
-    if (pageContent.includes('captcha') || pageContent.includes('CAPTCHA')) {
-      console.log('🚫 CAPTCHA detected!');
-    }
-    if (pageContent.includes('blocked') || pageContent.includes('security')) {
-      console.log('🚫 Security block detected!');
-    }
-    if (currentUrl.includes('checkpoint') || currentUrl.includes('login')) {
-      console.log('🚫 Redirected to login/checkpoint!');
-    }
-    
-    // Take screenshot for debugging (only in production to see what Facebook shows)
-    if (process.env.NODE_ENV === 'production') {
-      try {
-        await page.screenshot({ path: '/tmp/facebook-debug.png', fullPage: true });
-        console.log('📸 Debug screenshot saved to /tmp/facebook-debug.png');
-      } catch (e) {
-        console.log('📸 Screenshot failed:', e);
-      }
+    // Only trigger on actual redirects, not page content
+    if (currentUrl.includes('checkpoint') || currentUrl.includes('security-check') || currentUrl.includes('login') || currentUrl.includes('/checkpoint/')) {
+      console.log('🚫 Actually redirected to security page!');
+      return [];
     }
 
     /* ───────── Cookie banner ───────── */
