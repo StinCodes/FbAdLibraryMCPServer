@@ -17,26 +17,18 @@ export async function scrapeFacebookAds({ company }: ScrapeInput) {
     console.log('🖥️ Started virtual display for non-headless browser');
   }
 
+  // Simplified browser setup - no complex stealth scripts
   const browser = await chromium.launch({ 
-    headless: false, // Force non-headless in ALL environments!
+    headless: false,
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox'
     ]
   });
   
+  // Simple context - just basic settings
   const context = await browser.newContext({
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-    viewport: { width: 1920, height: 1080 },
-    locale: 'en-US',
-    timezoneId: 'America/New_York',
-    extraHTTPHeaders: {
-      'Accept-Language': 'en-US,en;q=0.9',
-      'Accept-Encoding': 'gzip, deflate, br',
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-      'Connection': 'keep-alive',
-      'Upgrade-Insecure-Requests': '1'
-    }
+    viewport: { width: 1920, height: 1080 }
   });
   
   const page = await context.newPage();
