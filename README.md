@@ -120,6 +120,16 @@ Connect to the server using any MCP-compatible client:
 - **Browser Management**: Proper cleanup of Playwright browser instances
 - **Memory Efficiency**: Streaming data processing where possible
 
+## Anti-Bot Detection Countermeasures
+
+This server successfully bypasses Facebook's anti-bot detection through:
+
+- **Virtual Display (Xvfb)**: Runs non-headless browsers in cloud environments
+- **Natural Navigation**: Mimics human browsing patterns (homepage → Ad Library)
+- **Simplified Browser Config**: Avoids complex "stealth" techniques that trigger detection
+- **Smart Timeout Handling**: 30-second browser launch timeout with fallback mechanisms
+- **Production-Optimized**: Different behavior in production vs development environments
+
 ## Known Limitations
 
 - Runs in non-headless mode to avoid detection
@@ -168,6 +178,8 @@ flyctl deploy
 ## Connection Details
 
 **Public URL:** `https://fbadlibrarymcpserver.fly.dev`
+
+**Quick Test:** `https://fbadlibrarymcpserver.fly.dev/test-search?company=Nike&limit=3`
 
 **MCP Client Configuration:**
 ```json
