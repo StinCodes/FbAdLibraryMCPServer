@@ -71,11 +71,11 @@ export async function scrapeFacebookAds({ company }: ScrapeInput) {
     }
     
     // Look for any text containing "category" or "ad"
-    const allText = await page.$$('text=/category|ad|filter/i');
-    console.log(`📝 Found ${allText.length} elements with category/ad/filter text`);
+    const categoryElements = await page.$$('text=/category|ad|filter/i');
+    console.log(`📝 Found ${categoryElements.length} elements with category/ad/filter text`);
     
-    for (let i = 0; i < Math.min(3, allText.length); i++) {
-      const text = await allText[i].textContent();
+    for (let i = 0; i < Math.min(3, categoryElements.length); i++) {
+      const text = await categoryElements[i].textContent();
       console.log(`📄 Text ${i}: "${text}"`);
     }
 
