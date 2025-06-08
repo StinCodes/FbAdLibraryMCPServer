@@ -59,6 +59,25 @@ export async function scrapeFacebookAds({ company }: ScrapeInput) {
       console.log('🚫 Actually redirected to security page!');
       return [];
     }
+    
+    // Debug: What elements are actually on the page?
+    console.log('🔍 Looking for available buttons and text...');
+    const allButtons = await page.$$('button');
+    console.log(`📊 Found ${allButtons.length} buttons on page`);
+    
+    for (let i = 0; i < Math.min(5, allButtons.length); i++) {
+      const buttonText = await allButtons[i].textContent();
+      console.log(`🔘 Button ${i}: "${buttonText}"`);
+    }
+    
+    // Look for any text containing "category" or "ad"
+    const allText = await page.$$('text=/category|ad|filter/i');
+    console.log(`📝 Found ${allText.length} elements with category/ad/filter text`);
+    
+    for (let i = 0; i < Math.min(3, allText.length); i++) {
+      const text = await allText[i].textContent();
+      console.log(`📄 Text ${i}: "${text}"`);
+    }
 
     /* ───────── Cookie banner ───────── */
     try {
@@ -118,17 +137,53 @@ export async function scrapeFacebookAds({ company }: ScrapeInput) {
 
     /* ───────── Wait for first results ───────── */
     console.log("⏳ Waiting for ads or 'no results' message…");
-    const resultsOrEmpty = await Promise.race([
-      page
-        .waitForSelector("text=Library ID", { timeout: 15000, state: "attached" })
-        .then(() => "ads"),
-      page
-        .waitForSelector("text=No results found", {
-          timeout: 15000,
-          state: "attached",
-        })
-        .then(() => "none"),
-    ]);
+    
+    // Wait for page to load after search
+    await page.waitForTimeout(5000);
+    
+    // Debug: What's actually on the results page?
+    console.log("🔍 Checking what's on the results page...");
+    const pageContent = await page.content();
+    
+    // Check for various result indicators
+    if (pageContent.includes("No results found") || pageContent.includes("no results")) {
+      console.log("⚠️ No results found for this search");
+      return [];
+    }
+    
+    // Look for different ad indicators
+    const possibleSelectors = [
+      "text=Library ID",
+      "text=Ad ID", 
+      "text=ID:",
+      "[data-testid*='ad']",
+      ".x1i10hfl", // Common Facebook class for ad containers
+      "text=Active",
+      "text=Inactive"
+    ];
+    
+    for (const selector of possibleSelectors) {
+      try {
+        const element = await page.$(selector);
+        if (element) {
+          console.log(`✅ Found ads using selector: ${selector}`);
+          const resultsOrEmpty = "ads";
+          break;
+        }
+      } catch (e) {
+        console.log(`❌ Selector failed: ${selector}`);
+      }
+    }
+    
+    // If no selectors work, let's see what text is actually there
+    const allText = await page.$$eval('*', els => 
+      els.map(el => el.textContent?.trim())
+        .filter(text => text && text.length > 0 && text.length < 100)
+        .slice(0, 20)
+    );
+    console.log("📄 Sample page text:", allText);
+    
+    const resultsOrEmpty = "none"; // Default to none for now
 
     if (resultsOrEmpty === "none") {
       console.log("⚠️ No ads found for this query.");
