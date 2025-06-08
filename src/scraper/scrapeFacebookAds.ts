@@ -162,12 +162,14 @@ export async function scrapeFacebookAds({ company }: ScrapeInput) {
       "text=Inactive"
     ];
     
+    let resultsOrEmpty = "none"; // Default to none
+    
     for (const selector of possibleSelectors) {
       try {
         const element = await page.$(selector);
         if (element) {
           console.log(`✅ Found ads using selector: ${selector}`);
-          const resultsOrEmpty = "ads";
+          resultsOrEmpty = "ads";
           break;
         }
       } catch (e) {
@@ -176,14 +178,12 @@ export async function scrapeFacebookAds({ company }: ScrapeInput) {
     }
     
     // If no selectors work, let's see what text is actually there
-    const allText = await page.$$eval('*', els => 
+    const pageText = await page.$$eval('*', els => 
       els.map(el => el.textContent?.trim())
         .filter(text => text && text.length > 0 && text.length < 100)
         .slice(0, 20)
     );
-    console.log("📄 Sample page text:", allText);
-    
-    const resultsOrEmpty = "none"; // Default to none for now
+    console.log("📄 Sample page text:", pageText);
 
     if (resultsOrEmpty === "none") {
       console.log("⚠️ No ads found for this query.");
