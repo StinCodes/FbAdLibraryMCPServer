@@ -111,13 +111,9 @@ export async function scrapeFacebookAds({ company }: ScrapeInput) {
 
     if (!searchInput) throw new Error("❌ Could not find a usable search input.");
 
+    // Simple, natural typing
     await searchInput.click();
-    // Human-like typing with random delays
-    const searchTerm = company || "";
-    for (const char of searchTerm) {
-      await page.keyboard.type(char, { delay: 80 + Math.random() * 120 });
-    }
-    await page.waitForTimeout(500 + Math.random() * 1000);
+    await searchInput.fill(company || "");
     await page.keyboard.press("Enter");
 
     /* ───────── Wait for first results ───────── */
